@@ -5,7 +5,7 @@ An English-like language that transpiles to Python.
 
 Some example Lishp code, that shows all its features (Lishp is a minimal language):
 
-```
+```c
 say hello, world!
 
 set my_name to "Arnold"
