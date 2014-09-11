@@ -64,6 +64,8 @@ def transpile(line):
 
         if command == "add":
             return value + " += " + " ".join(formatted_effect) + "\n"
+        elif command == "take":
+            return value + " -= " + " ".join(formatted_effect) + "\n"
 
 def openFile(name):
     try:
