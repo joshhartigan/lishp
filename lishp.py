@@ -1,13 +1,7 @@
 import sys
 
-variables = {}
-
-def getVars(word):
-    if word.startswith("{") and word.endswith("}"):
-        return variables[word.replace("{", "").replace("}","")]
-    else:
-        return word
-
+def isIdentifier(word):
+    return word.startswith("{") and word.endswith("}")
 
 def transpile(line):
     words = line.split()
@@ -16,44 +10,60 @@ def transpile(line):
     else:
         command = ""
 
+
     if len(words) >= 1 and command == "say":
         toPrint = []
         for word in words[1:]:
-            toPrint.append(getVars(word))
-        return "print(\"" + " ".join(toPrint) +"\")"
+            if isIdentifier(word):
+                if word != words[len(words) - 1]:
+                    word = word.replace("{","").replace("}","") + ", "
+                else:
+                    word = word.replace("{","").replace("}","")
+            else:
+                if word != words[len(words) - 1]:
+                    word = "\"" + word + "\", "
+                else:
+                    word = "\"" + word + "\""
+            toPrint.append(word)
+
+        return "print(" + " ".join(toPrint) + ")\n"
+
 
     if len(words) >= 4 and command == "set" and words[2] == "to":
-        toSet = []
-        for word in words[3:]:
-            toSet.append(getVars(word))
-        if any(i.isdigit() for i in " ".join(toSet)):
-            variables[words[1]] = str(eval(" ".join(toSet)))
-        else:
-            variables[words[1]] = str(" ".join(toSet))
+        variable = words[1]
+        value = []
+
+        for v in words[3:]:
+            if isIdentifier(v):
+                v = v.replace("{","").replace("}","")
+            elif not v.isdigit():
+                v = "\"" + v + "\""
+            value.append(v)
+
+        return str( variable + " = " + " ".join(value) + "\n" )
+
 
     if len(words) >= 1:
-        secondLast = words[len(words) - 2]
+        secondLast = words[ len(words) - 2 ]
     else:
         secondLast = ""
+
     if len(words) >= 4 and \
       command == "add" or command == "take" and \
       secondLast == "to" or secondLast == "from":
 
-        if variables[words[len(words) - 1]]:
-            exprnWithoutVars = words[1:len(words) - 2]
-            expression = []
+        effect = words[ 1 : words.index(secondLast) ]
+        formatted_effect = []
 
-            toChange = variables[words[len(words) - 1]]
+        value = words[ len(words) - 1 ]
 
-            for elem in exprnWithoutVars:
-                expression.append(getVars(elem))
-            if command == "add" and secondLast == "to":
-                variables[words[len(words) - 1]] = \
-                  str(int(toChange) + eval(" ".join(expression)))
-            elif command == "take" and secondLast == "from":
-                variables[words[len(words) - 1]] = \
-                  str(int(toChange) - eval(" ".join(expression)))
+        for e in effect:
+            if isIdentifier(e):
+                e = e.replace("{","").replace("}","")
+            formatted_effect.append(e)
 
+        if command == "add":
+            return value + " += " + " ".join(formatted_effect) + "\n"
 
 def openFile(name):
     try:
@@ -63,10 +73,10 @@ def openFile(name):
         print("File " + name + " not found.")
         sys.exit(1)
 
+    output.write("from __future__ import print_function\n\n")
+
     for line in source.readlines():
-        tr = transpile(line)
-        if tr:
-            output.write(str(tr))
+        output.write(str(transpile(line)))
 
 
 def main():
